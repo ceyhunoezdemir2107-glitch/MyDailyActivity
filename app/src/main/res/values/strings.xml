@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">MyDailyActivity</string>
+    <string name="widget_title">Denk an deine Ziele</string>
+    <string name="widget_message">Ein kleiner Impuls, um heute wieder dranzubleiben.</string>
+    <string name="widget_description">Motivations-Widget für deine Ziele</string>
+    <string name="widget_image_description">Motivationsbild</string>
+</resources>

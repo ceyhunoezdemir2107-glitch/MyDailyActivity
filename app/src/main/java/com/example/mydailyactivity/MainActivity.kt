@@ -68,8 +68,23 @@ class MainActivity : ComponentActivity() {
         }
 
         lifecycleScope.launch {
-            goalDataStore.remindersEnabledFlow.collect { enabled ->
-                ReminderWidgetController.setEnabled(this@MainActivity, enabled)
+            combine(
+                goalDataStore.remindersEnabledFlow,
+                goalDataStore.userRewardsFlow,
+                goalDataStore.unlockedRewardsFlow
+            ) { remindersEnabled, rewards, unlockedIds ->
+                val hasUnlockedPersonalImage = rewards.any { reward ->
+                    reward.imageUri != null && unlockedIds.contains(reward.id)
+                }
+                remindersEnabled to hasUnlockedPersonalImage
+            }.collect { (remindersEnabled, hasUnlockedPersonalImage) ->
+                val canEnableReminders = remindersEnabled && hasUnlockedPersonalImage
+                ReminderWidgetController.setEnabled(this@MainActivity, canEnableReminders)
+
+                if (remindersEnabled && !hasUnlockedPersonalImage) {
+                    goalDataStore.updateRemindersEnabled(false)
+                    goalDataStore.updateSelectedWidgetRewardId(null)
+                }
             }
         }
 

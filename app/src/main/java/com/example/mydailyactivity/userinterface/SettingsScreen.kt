@@ -27,6 +27,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -85,12 +86,22 @@ fun SettingsScreen(goalDataStore: GoalDataStore, albumDataStore: AlbumDataStore)
     val unlockedWidgetRewards = userRewards.filter { reward ->
         reward.imageUri != null && unlockedRewards.contains(reward.id)
     }
+    val canUseReminders = unlockedWidgetRewards.isNotEmpty()
+    val effectiveRemindersEnabled = remindersEnabled && canUseReminders
     val widgetImageOptions = listOf("Automatisch" to null) +
         unlockedWidgetRewards.mapIndexed { index, reward -> "Bild ${index + 1}" to reward.id }
     val selectedWidgetImageLabel = widgetImageOptions
         .firstOrNull { (_, rewardId) -> rewardId == selectedWidgetRewardId }
         ?.first
         ?: "Automatisch"
+
+    LaunchedEffect(canUseReminders, remindersEnabled) {
+        if (!canUseReminders && remindersEnabled) {
+            ReminderWidgetController.setEnabled(context, false)
+            goalDataStore.updateRemindersEnabled(false)
+            goalDataStore.updateSelectedWidgetRewardId(null)
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -176,10 +187,12 @@ fun SettingsScreen(goalDataStore: GoalDataStore, albumDataStore: AlbumDataStore)
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
-                    Text("Erinnerungen aktivieren", style = MaterialTheme.typography.bodyLarge)
-                    Text(
-                        text = if (remindersEnabled) {
+                        Text("Erinnerungen aktivieren", style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                        text = if (effectiveRemindersEnabled) {
                             "Das Ziel-Erinnerungswidget ist im System verfügbar."
+                        } else if (!canUseReminders) {
+                            "Schalte zuerst ein persönliches Belohnungsbild frei."
                         } else {
                             "Das Ziel-Erinnerungswidget bleibt deaktiviert."
                         },
@@ -189,12 +202,21 @@ fun SettingsScreen(goalDataStore: GoalDataStore, albumDataStore: AlbumDataStore)
                 }
 
                 Switch(
-                    checked = remindersEnabled,
+                    checked = effectiveRemindersEnabled,
+                    enabled = canUseReminders,
                     onCheckedChange = { enabled ->
-                        ReminderWidgetController.setEnabled(context, enabled)
-                        ReminderWidgetController.updateWidgets(context)
+                        val shouldEnable = enabled && canUseReminders
+                        ReminderWidgetController.setEnabled(context, shouldEnable)
+                        if (shouldEnable) {
+                            ReminderWidgetController.updateWidgets(context)
+                        }
                         widgetPinMessage = null
-                        scope.launch { goalDataStore.updateRemindersEnabled(enabled) }
+                        scope.launch {
+                            goalDataStore.updateRemindersEnabled(shouldEnable)
+                            if (!shouldEnable) {
+                                goalDataStore.updateSelectedWidgetRewardId(null)
+                            }
+                        }
                     }
                 )
             }
@@ -240,7 +262,7 @@ fun SettingsScreen(goalDataStore: GoalDataStore, albumDataStore: AlbumDataStore)
                 )
             }
 
-            if (remindersEnabled) {
+            if (effectiveRemindersEnabled) {
                 Button(
                     onClick = {
                         ReminderWidgetController.setEnabled(context, true)
@@ -365,8 +387,11 @@ fun SettingsScreen(goalDataStore: GoalDataStore, albumDataStore: AlbumDataStore)
                             goalDataStore.clearWeeklyGoals()
                             goalDataStore.clearUserRewards()
                             goalDataStore.clearUnlockedRewards()
+                            goalDataStore.updateRemindersEnabled(false)
+                            goalDataStore.updateSelectedWidgetRewardId(null)
                             goalDataStore.setPoints(0)
                             albumDataStore.clearAlbums()
+                            ReminderWidgetController.setEnabled(context, false)
                             ReminderWidgetController.updateWidgets(context)
                         }
                     }

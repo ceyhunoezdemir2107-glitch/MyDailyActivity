@@ -393,13 +393,14 @@ private fun RewardPreviewImage(reward: com.example.mydailyactivity.data.Reward) 
         .fillMaxWidth()
         .height(168.dp)
         .clip(RoundedCornerShape(12.dp))
+        .background(MaterialTheme.colorScheme.surfaceVariant)
 
     when {
         reward.imageUri != null -> {
             AsyncImage(
                 model = reward.imageUri,
                 contentDescription = null,
-                contentScale = ContentScale.Crop,
+                contentScale = ContentScale.Fit,
                 modifier = modifier
             )
         }

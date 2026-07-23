@@ -86,7 +86,11 @@ fun AlbumDetailScreen(
                 }
 
                 IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Zurück")
+                    Icon(
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "Zurück",
+                        tint = MaterialTheme.colorScheme.onBackground
+                    )
                 }
             }
         }

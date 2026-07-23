@@ -88,18 +88,27 @@ fun SettingsScreen(goalDataStore: GoalDataStore, albumDataStore: AlbumDataStore)
     }
     val canUseReminders = unlockedWidgetRewards.isNotEmpty()
     val effectiveRemindersEnabled = remindersEnabled && canUseReminders
-    val widgetImageOptions = listOf("Automatisch" to null) +
+    val defaultWidgetRewardId = unlockedWidgetRewards.lastOrNull()?.id
+    val selectedWidgetRewardExists = unlockedWidgetRewards.any { reward ->
+        reward.id == selectedWidgetRewardId
+    }
+    val widgetImageOptions =
         unlockedWidgetRewards.mapIndexed { index, reward -> "Bild ${index + 1}" to reward.id }
     val selectedWidgetImageLabel = widgetImageOptions
         .firstOrNull { (_, rewardId) -> rewardId == selectedWidgetRewardId }
         ?.first
-        ?: "Automatisch"
+        ?: widgetImageOptions
+            .firstOrNull { (_, rewardId) -> rewardId == defaultWidgetRewardId }
+            ?.first
+        ?: "Kein Bild"
 
-    LaunchedEffect(canUseReminders, remindersEnabled) {
+    LaunchedEffect(canUseReminders, remindersEnabled, selectedWidgetRewardId, defaultWidgetRewardId) {
         if (!canUseReminders && remindersEnabled) {
             ReminderWidgetController.setEnabled(context, false)
             goalDataStore.updateRemindersEnabled(false)
             goalDataStore.updateSelectedWidgetRewardId(null)
+        } else if (canUseReminders && (!selectedWidgetRewardExists || selectedWidgetRewardId == null)) {
+            goalDataStore.updateSelectedWidgetRewardId(defaultWidgetRewardId)
         }
     }
 

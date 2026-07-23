@@ -186,7 +186,11 @@ fun DailyScreen(goalDataStore: GoalDataStore) {
         }
 
         item {
-            Text("Tagesziele", style = MaterialTheme.typography.titleLarge)
+            Text(
+                text = "Tagesziele",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onBackground
+            )
         }
 
         if (goals.isEmpty()) {

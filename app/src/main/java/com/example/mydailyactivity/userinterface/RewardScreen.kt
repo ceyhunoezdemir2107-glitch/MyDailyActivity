@@ -146,7 +146,11 @@ fun RewardScreen(
         }
 
         item {
-            Text("Deine Belohnungen", style = MaterialTheme.typography.titleLarge)
+            Text(
+                text = "Deine Belohnungen",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onBackground
+            )
         }
 
         if (userRewards.isEmpty()) {

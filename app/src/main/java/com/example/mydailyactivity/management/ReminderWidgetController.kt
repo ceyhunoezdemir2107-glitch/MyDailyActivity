@@ -6,8 +6,11 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
+import android.util.Log
 
 object ReminderWidgetController {
+    private const val TAG = "ReminderWidgetController"
+
     enum class WidgetPinResult {
         PinRequested,
         UpdatedExisting,
@@ -64,14 +67,18 @@ object ReminderWidgetController {
     private fun updateWidgetPreview(context: Context) {
         if (Build.VERSION.SDK_INT < 35) return
 
-        val appWidgetManager = AppWidgetManager.getInstance(context)
-        val component = ComponentName(context, GoalReminderWidgetProvider::class.java)
-        val preview = GoalReminderWidgetProvider().createRemoteViews(context)
+        runCatching {
+            val appWidgetManager = AppWidgetManager.getInstance(context)
+            val component = ComponentName(context, GoalReminderWidgetProvider::class.java)
+            val preview = GoalReminderWidgetProvider().createRemoteViews(context)
 
-        appWidgetManager.setWidgetPreview(
-            component,
-            AppWidgetProviderInfo.WIDGET_CATEGORY_HOME_SCREEN,
-            preview
-        )
+            appWidgetManager.setWidgetPreview(
+                component,
+                AppWidgetProviderInfo.WIDGET_CATEGORY_HOME_SCREEN,
+                preview
+            )
+        }.onFailure { error ->
+            Log.w(TAG, "Widget preview could not be updated.", error)
+        }
     }
 }

@@ -169,7 +169,11 @@ fun WeeklyScreen(goalDataStore: GoalDataStore) {
         }
 
         item {
-            Text("Wochenziele", style = MaterialTheme.typography.titleLarge)
+            Text(
+                text = "Wochenziele",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onBackground
+            )
         }
 
         if (weeklyGoals.isEmpty()) {

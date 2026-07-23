@@ -33,6 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -169,7 +170,7 @@ fun RewardCard(
 
 @Composable
 fun RewardImageView(reward: Reward, isUnlocked: Boolean) {
-    val modifier = Modifier
+    val imageModifier = Modifier
         .fillMaxWidth()
         .height(168.dp)
         .clip(RoundedCornerShape(12.dp))
@@ -178,12 +179,23 @@ fun RewardImageView(reward: Reward, isUnlocked: Boolean) {
 
     when {
         reward.imageUri != null -> {
-            AsyncImage(
-                model = reward.imageUri,
-                contentDescription = null,
-                contentScale = ContentScale.Fit,
-                modifier = modifier
-            )
+            Box(modifier = imageModifier) {
+                AsyncImage(
+                    model = reward.imageUri,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .matchParentSize()
+                        .blur(18.dp)
+                        .alpha(0.42f)
+                )
+                AsyncImage(
+                    model = reward.imageUri,
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.matchParentSize()
+                )
+            }
         }
 
         reward.imageRes != null -> {
@@ -191,13 +203,13 @@ fun RewardImageView(reward: Reward, isUnlocked: Boolean) {
                 painter = painterResource(reward.imageRes),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
-                modifier = modifier
+                modifier = imageModifier
             )
         }
 
         else -> {
             Box(
-                modifier = modifier.background(MaterialTheme.colorScheme.surfaceVariant),
+                modifier = imageModifier.background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
                 Image(

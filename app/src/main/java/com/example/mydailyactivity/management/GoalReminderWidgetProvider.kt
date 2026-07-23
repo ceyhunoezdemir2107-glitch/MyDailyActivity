@@ -45,8 +45,10 @@ class GoalReminderWidgetProvider : AppWidgetProvider() {
             setOnClickPendingIntent(R.id.widget_root, pendingIntent)
             val personalBitmap = loadUnlockedPersonalBitmap(context)
             if (personalBitmap != null) {
+                setImageViewBitmap(R.id.widget_image_background, personalBitmap)
                 setImageViewBitmap(R.id.widget_image, personalBitmap)
             } else {
+                setImageViewResource(R.id.widget_image_background, R.drawable.reward_sunrise)
                 setImageViewResource(R.id.widget_image, R.drawable.reward_sunrise)
             }
         }

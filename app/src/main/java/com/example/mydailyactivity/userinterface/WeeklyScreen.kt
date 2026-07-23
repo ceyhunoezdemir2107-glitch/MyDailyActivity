@@ -3,6 +3,7 @@ package com.example.mydailyactivity.userinterface
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -39,6 +40,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -400,12 +403,23 @@ private fun WeeklyRewardPreviewImage(reward: Reward) {
 
     when {
         reward.imageUri != null -> {
-            AsyncImage(
-                model = reward.imageUri,
-                contentDescription = null,
-                contentScale = ContentScale.Fit,
-                modifier = modifier
-            )
+            Box(modifier = modifier) {
+                AsyncImage(
+                    model = reward.imageUri,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .matchParentSize()
+                        .blur(18.dp)
+                        .alpha(0.42f)
+                )
+                AsyncImage(
+                    model = reward.imageUri,
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.matchParentSize()
+                )
+            }
         }
 
         reward.imageRes != null -> {

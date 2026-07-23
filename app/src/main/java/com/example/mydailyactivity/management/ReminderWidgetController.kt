@@ -33,9 +33,13 @@ object ReminderWidgetController {
     }
 
     fun requestSingleWidget(context: Context): WidgetPinResult {
-        val appWidgetManager = context.getSystemService(AppWidgetManager::class.java)
+        setEnabled(context, true)
+
+        val appWidgetManager = AppWidgetManager.getInstance(context)
         val component = ComponentName(context, GoalReminderWidgetProvider::class.java)
-        val existingWidgetIds = appWidgetManager.getAppWidgetIds(component)
+        val existingWidgetIds = runCatching {
+            appWidgetManager.getAppWidgetIds(component)
+        }.getOrDefault(IntArray(0))
 
         updateWidgetPreview(context)
 
@@ -44,12 +48,17 @@ object ReminderWidgetController {
             return WidgetPinResult.UpdatedExisting
         }
 
-        if (!appWidgetManager.isRequestPinAppWidgetSupported) {
+        if (!runCatching { appWidgetManager.isRequestPinAppWidgetSupported }.getOrDefault(false)) {
             return WidgetPinResult.NotSupported
         }
 
-        appWidgetManager.requestPinAppWidget(component, null, null)
-        return WidgetPinResult.PinRequested
+        return runCatching {
+            appWidgetManager.requestPinAppWidget(component, null, null)
+            WidgetPinResult.PinRequested
+        }.getOrElse { error ->
+            Log.w(TAG, "Widget pin request could not be sent.", error)
+            WidgetPinResult.NotSupported
+        }
     }
 
     fun updateWidgets(context: Context) {

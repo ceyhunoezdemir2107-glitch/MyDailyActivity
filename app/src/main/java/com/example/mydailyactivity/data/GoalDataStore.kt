@@ -141,6 +141,7 @@ class GoalDataStore(private val context: Context) {
     private val SELECTED_WIDGET_REWARD_ID_KEY = intPreferencesKey("selected_widget_reward_id")
     private val GOAL_NOTIFICATION_ENABLED_KEY = booleanPreferencesKey("goal_notification_enabled")
     private val GOAL_NOTIFICATION_TIME_KEY = stringPreferencesKey("goal_notification_time")
+    private val GOAL_NOTIFICATION_MESSAGE_KEY = stringPreferencesKey("goal_notification_message")
 
     val remindersEnabledFlow = context.goalDataStore.data.map { prefs ->
         prefs[REMINDERS_ENABLED_KEY] ?: false
@@ -156,6 +157,10 @@ class GoalDataStore(private val context: Context) {
 
     val goalNotificationTimeFlow = context.goalDataStore.data.map { prefs ->
         prefs[GOAL_NOTIFICATION_TIME_KEY] ?: "20:00"
+    }
+
+    val goalNotificationMessageFlow = context.goalDataStore.data.map { prefs ->
+        prefs[GOAL_NOTIFICATION_MESSAGE_KEY] ?: "MyDailyActivity"
     }
 
     suspend fun updateRemindersEnabled(enabled: Boolean) {
@@ -183,6 +188,12 @@ class GoalDataStore(private val context: Context) {
     suspend fun updateGoalNotificationTime(time: String) {
         context.goalDataStore.edit { prefs ->
             prefs[GOAL_NOTIFICATION_TIME_KEY] = time
+        }
+    }
+
+    suspend fun updateGoalNotificationMessage(message: String) {
+        context.goalDataStore.edit { prefs ->
+            prefs[GOAL_NOTIFICATION_MESSAGE_KEY] = message
         }
     }
 

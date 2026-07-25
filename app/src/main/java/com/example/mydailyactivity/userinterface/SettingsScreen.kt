@@ -54,6 +54,7 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsScreen(goalDataStore: GoalDataStore, albumDataStore: AlbumDataStore) {
+    val maxNotificationMessageLength = 60
     val dailyResetTime by goalDataStore.resetTimeFlow.collectAsState(initial = "04:00")
     val weeklyResetTime by goalDataStore.weeklyResetTimeFlow.collectAsState(initial = "04:00")
     val weeklyResetDay by goalDataStore.weeklyResetDayFlow.collectAsState(initial = "MONDAY")
@@ -63,6 +64,7 @@ fun SettingsScreen(goalDataStore: GoalDataStore, albumDataStore: AlbumDataStore)
     val remindersEnabled by goalDataStore.remindersEnabledFlow.collectAsState(initial = false)
     val goalNotificationEnabled by goalDataStore.goalNotificationEnabledFlow.collectAsState(initial = false)
     val goalNotificationTime by goalDataStore.goalNotificationTimeFlow.collectAsState(initial = "20:00")
+    val goalNotificationMessage by goalDataStore.goalNotificationMessageFlow.collectAsState(initial = "MyDailyActivity")
     val unlockedRewards by goalDataStore.unlockedRewardsFlow.collectAsState(initial = emptyList())
     val userRewards by goalDataStore.userRewardsFlow.collectAsState(initial = emptyList())
     val selectedWidgetRewardId by goalDataStore.selectedWidgetRewardIdFlow.collectAsState(initial = null)
@@ -71,6 +73,9 @@ fun SettingsScreen(goalDataStore: GoalDataStore, albumDataStore: AlbumDataStore)
     val context = LocalContext.current
     var showResetDialog by remember { mutableStateOf(false) }
     var fixedCostInput by remember { mutableStateOf(fixedCost.toString()) }
+    var notificationMessageInput by remember(goalNotificationMessage) {
+        mutableStateOf(goalNotificationMessage.take(maxNotificationMessageLength))
+    }
     var exactResetsAllowed by remember {
         mutableStateOf(ResetScheduler.canScheduleExactResets(context))
     }
@@ -270,7 +275,7 @@ fun SettingsScreen(goalDataStore: GoalDataStore, albumDataStore: AlbumDataStore)
 
             ResetTimeRow(
                 title = "Benachrichtigungszeit",
-                subtitle = "Zeigt täglich: Denk an deine Ziele, MyDailyActivity.",
+                subtitle = "Titel: Denk an deine Ziele.",
                 time = goalNotificationTime,
                 onClick = {
                     showTimePicker(context, goalNotificationTime) { newTime ->
@@ -281,6 +286,33 @@ fun SettingsScreen(goalDataStore: GoalDataStore, albumDataStore: AlbumDataStore)
                     }
                 }
             )
+
+            OutlinedTextField(
+                value = notificationMessageInput,
+                onValueChange = { text ->
+                    notificationMessageInput = text.take(maxNotificationMessageLength)
+                },
+                label = { Text("Benachrichtigungstext") },
+                supportingText = {
+                    Text("${notificationMessageInput.length} / $maxNotificationMessageLength Zeichen")
+                },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Button(
+                onClick = {
+                    val message = notificationMessageInput.trim().ifEmpty { "MyDailyActivity" }
+                    notificationMessageInput = message.take(maxNotificationMessageLength)
+                    scope.launch {
+                        goalDataStore.updateGoalNotificationMessage(message.take(maxNotificationMessageLength))
+                    }
+                },
+                enabled = notificationMessageInput.trim() != goalNotificationMessage,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Text speichern")
+            }
 
             notificationMessage?.let { message ->
                 Text(

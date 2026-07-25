@@ -25,9 +25,10 @@ class GoalNotificationReceiver : BroadcastReceiver() {
                 val dataStore = GoalDataStore(context.applicationContext)
                 val notificationsEnabled = dataStore.goalNotificationEnabledFlow.first()
                 val notificationTime = dataStore.goalNotificationTimeFlow.first()
+                val notificationMessage = dataStore.goalNotificationMessageFlow.first()
 
                 if (notificationsEnabled) {
-                    GoalNotificationScheduler.showNotification(context)
+                    GoalNotificationScheduler.showNotification(context, notificationMessage)
                     GoalNotificationScheduler.scheduleDailyNotification(context, notificationTime)
                 }
             } finally {

@@ -64,13 +64,14 @@ object GoalNotificationScheduler {
         alarmManager.cancel(reminderPendingIntent(context))
     }
 
-    fun showNotification(context: Context) {
+    fun showNotification(context: Context, message: String) {
         if (!hasNotificationPermission(context)) {
             Log.w(TAG, "Notification permission is missing.")
             return
         }
 
         createChannel(context)
+        val notificationMessage = message.ifBlank { "MyDailyActivity" }
 
         val openAppIntent = Intent(context, MainActivity::class.java)
         val pendingIntent = PendingIntent.getActivity(
@@ -83,8 +84,8 @@ object GoalNotificationScheduler {
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle("Denk an deine Ziele")
-            .setContentText("MyDailyActivity")
-            .setStyle(NotificationCompat.BigTextStyle().bigText("Denk an deine Ziele, MyDailyActivity"))
+            .setContentText(notificationMessage)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(notificationMessage))
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)

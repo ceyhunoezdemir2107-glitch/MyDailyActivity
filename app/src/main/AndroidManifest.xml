@@ -3,6 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:allowBackup="true"
@@ -28,6 +29,10 @@
 
         <receiver
             android:name=".management.ResetAlarmReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".management.GoalNotificationReceiver"
             android:exported="false" />
 
         <receiver

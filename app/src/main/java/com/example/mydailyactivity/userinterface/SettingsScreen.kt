@@ -1,7 +1,12 @@
 ﻿package com.example.mydailyactivity.userinterface
 
+import android.Manifest
 import android.app.TimePickerDialog
 import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -39,8 +44,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import com.example.mydailyactivity.data.AlbumDataStore
 import com.example.mydailyactivity.data.GoalDataStore
+import com.example.mydailyactivity.management.GoalNotificationScheduler
 import com.example.mydailyactivity.management.ReminderWidgetController
 import com.example.mydailyactivity.management.ResetScheduler
 import kotlinx.coroutines.launch
@@ -54,6 +61,8 @@ fun SettingsScreen(goalDataStore: GoalDataStore, albumDataStore: AlbumDataStore)
     val costMode by goalDataStore.costModeFlow.collectAsState(initial = "random")
     val fixedCost by goalDataStore.fixedCostFlow.collectAsState(initial = 50)
     val remindersEnabled by goalDataStore.remindersEnabledFlow.collectAsState(initial = false)
+    val goalNotificationEnabled by goalDataStore.goalNotificationEnabledFlow.collectAsState(initial = false)
+    val goalNotificationTime by goalDataStore.goalNotificationTimeFlow.collectAsState(initial = "20:00")
     val unlockedRewards by goalDataStore.unlockedRewardsFlow.collectAsState(initial = emptyList())
     val userRewards by goalDataStore.userRewardsFlow.collectAsState(initial = emptyList())
     val selectedWidgetRewardId by goalDataStore.selectedWidgetRewardIdFlow.collectAsState(initial = null)
@@ -66,6 +75,25 @@ fun SettingsScreen(goalDataStore: GoalDataStore, albumDataStore: AlbumDataStore)
         mutableStateOf(ResetScheduler.canScheduleExactResets(context))
     }
     var widgetPinMessage by remember { mutableStateOf<String?>(null) }
+    var notificationMessage by remember { mutableStateOf<String?>(null) }
+    var notificationPermissionGranted by remember {
+        mutableStateOf(GoalNotificationScheduler.hasNotificationPermission(context))
+    }
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        notificationPermissionGranted = granted
+        scope.launch {
+            goalDataStore.updateGoalNotificationEnabled(granted)
+            if (granted) {
+                GoalNotificationScheduler.scheduleDailyNotification(context, goalNotificationTime)
+                notificationMessage = "Benachrichtigung wurde aktiviert."
+            } else {
+                GoalNotificationScheduler.cancelDailyNotification(context)
+                notificationMessage = "Ohne Berechtigung kann keine Benachrichtigung angezeigt werden."
+            }
+        }
+    }
 
     val goalModeGerman = when (goalMode) {
         "daily" -> "Täglich"
@@ -187,7 +215,7 @@ fun SettingsScreen(goalDataStore: GoalDataStore, albumDataStore: AlbumDataStore)
             }
         }
 
-        SettingsCard(title = "Erinnerungen") {
+        SettingsCard(title = "Tägliche Benachrichtigung") {
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
@@ -197,8 +225,84 @@ fun SettingsScreen(goalDataStore: GoalDataStore, albumDataStore: AlbumDataStore)
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
-                        Text("Erinnerungen aktivieren", style = MaterialTheme.typography.bodyLarge)
-                        Text(
+                    Text("Benachrichtigung aktivieren", style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        text = if (goalNotificationEnabled && notificationPermissionGranted) {
+                            "Du bekommst täglich eine Erinnerung an deine Ziele."
+                        } else if (!notificationPermissionGranted) {
+                            "Android benötigt dafür eine Benachrichtigungsfreigabe."
+                        } else {
+                            "Die tägliche Erinnerung ist deaktiviert."
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Switch(
+                    checked = goalNotificationEnabled && notificationPermissionGranted,
+                    onCheckedChange = { enabled ->
+                        notificationMessage = null
+                        if (enabled) {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                                ContextCompat.checkSelfPermission(
+                                    context,
+                                    Manifest.permission.POST_NOTIFICATIONS
+                                ) != PackageManager.PERMISSION_GRANTED
+                            ) {
+                                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            } else {
+                                notificationPermissionGranted = true
+                                scope.launch {
+                                    goalDataStore.updateGoalNotificationEnabled(true)
+                                    GoalNotificationScheduler.scheduleDailyNotification(context, goalNotificationTime)
+                                }
+                            }
+                        } else {
+                            scope.launch {
+                                goalDataStore.updateGoalNotificationEnabled(false)
+                                GoalNotificationScheduler.cancelDailyNotification(context)
+                            }
+                        }
+                    }
+                )
+            }
+
+            ResetTimeRow(
+                title = "Benachrichtigungszeit",
+                subtitle = "Zeigt täglich: Denk an deine Ziele, MyDailyActivity.",
+                time = goalNotificationTime,
+                onClick = {
+                    showTimePicker(context, goalNotificationTime) { newTime ->
+                        scope.launch { goalDataStore.updateGoalNotificationTime(newTime) }
+                        if (goalNotificationEnabled && notificationPermissionGranted) {
+                            GoalNotificationScheduler.scheduleDailyNotification(context, newTime)
+                        }
+                    }
+                }
+            )
+
+            notificationMessage?.let { message ->
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        SettingsCard(title = "Widget") {
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text("Widget aktivieren", style = MaterialTheme.typography.bodyLarge)
+                    Text(
                         text = if (effectiveRemindersEnabled) {
                             "Das Ziel-Erinnerungswidget ist im System verfügbar."
                         } else if (!canUseReminders) {

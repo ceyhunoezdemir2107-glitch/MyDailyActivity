@@ -32,6 +32,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.mydailyactivity.data.AlbumDataStore
 import com.example.mydailyactivity.data.GoalDataStore
+import com.example.mydailyactivity.management.GoalNotificationScheduler
 import com.example.mydailyactivity.management.ReminderWidgetController
 import com.example.mydailyactivity.management.ResetScheduler
 import com.example.mydailyactivity.ui.theme.MyDailyActivityTheme
@@ -88,6 +89,20 @@ class MainActivity : ComponentActivity() {
                     goalDataStore.updateSelectedWidgetRewardId(null)
                 }
             }
+        }
+
+        lifecycleScope.launch {
+            combine(
+                goalDataStore.goalNotificationEnabledFlow,
+                goalDataStore.goalNotificationTimeFlow
+            ) { enabled, time -> enabled to time }
+                .collect { (enabled, time) ->
+                    if (enabled && GoalNotificationScheduler.hasNotificationPermission(this@MainActivity)) {
+                        GoalNotificationScheduler.scheduleDailyNotification(this@MainActivity, time)
+                    } else {
+                        GoalNotificationScheduler.cancelDailyNotification(this@MainActivity)
+                    }
+                }
         }
 
         setContent {

@@ -132,15 +132,16 @@ fun WeeklyScreen(goalDataStore: GoalDataStore) {
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         OutlinedButton(
                             onClick = { showDeleteAllDialog = true },
                             enabled = weeklyGoals.isNotEmpty(),
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(0.9f),
+                            contentPadding = PaddingValues(horizontal = 10.dp)
                         ) {
                             Icon(Icons.Default.Delete, contentDescription = null)
-                            Spacer(Modifier.width(8.dp))
+                            Spacer(Modifier.width(6.dp))
                             Text("Leeren")
                         }
 
@@ -154,11 +155,12 @@ fun WeeklyScreen(goalDataStore: GoalDataStore) {
                                 }
                             },
                             enabled = newGoal.isNotBlank(),
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1.1f),
+                            contentPadding = PaddingValues(horizontal = 10.dp)
                         ) {
                             Icon(Icons.Default.Add, contentDescription = null)
-                            Spacer(Modifier.width(8.dp))
-                            Text("Hinzufügen")
+                            Spacer(Modifier.width(6.dp))
+                            Text("Hinzufügen", maxLines = 1, softWrap = false)
                         }
                     }
                 }

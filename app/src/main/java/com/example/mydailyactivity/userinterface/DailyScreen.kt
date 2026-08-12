@@ -212,10 +212,16 @@ fun DailyScreen(goalDataStore: GoalDataStore) {
                     isChecked = completedGoals.contains(goal),
                     points = goalPointsMap[goal] ?: 10,
                     onCheckedChange = { checked ->
+                        val pointsForGoal = goalPointsMap[goal] ?: 10
                         scope.launch {
                             goalDataStore.setGoalCompleted(goal, checked)
-                            if (checked) goalDataStore.addPoints(goalPointsMap[goal] ?: 10)
-                            else goalDataStore.removePoints(goalPointsMap[goal] ?: 10)
+                            if (checked) {
+                                goalDataStore.addPoints(pointsForGoal)
+                                goalDataStore.recordDailyProgress(completedGoalDelta = 1, pointDelta = pointsForGoal)
+                            } else {
+                                goalDataStore.removePoints(pointsForGoal)
+                                goalDataStore.recordDailyProgress(completedGoalDelta = -1, pointDelta = -pointsForGoal)
+                            }
                         }
                     },
                     onDelete = {

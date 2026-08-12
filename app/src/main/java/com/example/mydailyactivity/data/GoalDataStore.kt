@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
+import java.time.LocalDate
 
 // DataStore-Instanz
 //val Context.goalDataStore by preferencesDataStore(name = "goals")
@@ -142,6 +143,7 @@ class GoalDataStore(private val context: Context) {
     private val GOAL_NOTIFICATION_ENABLED_KEY = booleanPreferencesKey("goal_notification_enabled")
     private val GOAL_NOTIFICATION_TIME_KEY = stringPreferencesKey("goal_notification_time")
     private val GOAL_NOTIFICATION_MESSAGE_KEY = stringPreferencesKey("goal_notification_message")
+    private val DAILY_STATS_KEY = stringPreferencesKey("daily_stats")
 
     val remindersEnabledFlow = context.goalDataStore.data.map { prefs ->
         prefs[REMINDERS_ENABLED_KEY] ?: false
@@ -162,6 +164,14 @@ class GoalDataStore(private val context: Context) {
     val goalNotificationMessageFlow = context.goalDataStore.data.map { prefs ->
         prefs[GOAL_NOTIFICATION_MESSAGE_KEY] ?: "MyDailyActivity"
     }
+
+    val dailyStatsFlow: Flow<List<DailyStat>> =
+        context.goalDataStore.data.map { prefs ->
+            val json = prefs[DAILY_STATS_KEY] ?: "[]"
+            runCatching {
+                Json.decodeFromString<List<DailyStat>>(json)
+            }.getOrDefault(emptyList())
+        }
 
     suspend fun updateRemindersEnabled(enabled: Boolean) {
         context.goalDataStore.edit { prefs ->
@@ -194,6 +204,30 @@ class GoalDataStore(private val context: Context) {
     suspend fun updateGoalNotificationMessage(message: String) {
         context.goalDataStore.edit { prefs ->
             prefs[GOAL_NOTIFICATION_MESSAGE_KEY] = message
+        }
+    }
+
+    suspend fun recordDailyProgress(completedGoalDelta: Int, pointDelta: Int) {
+        val today = LocalDate.now().toString()
+
+        context.goalDataStore.edit { prefs ->
+            val currentStats = decodeDailyStats(prefs[DAILY_STATS_KEY])
+            val todayStat = currentStats.firstOrNull { it.date == today }
+                ?: DailyStat(date = today, completedGoals = 0, points = 0)
+            val updatedTodayStat = todayStat.copy(
+                completedGoals = (todayStat.completedGoals + completedGoalDelta).coerceAtLeast(0),
+                points = (todayStat.points + pointDelta).coerceAtLeast(0)
+            )
+            val updatedStats = (currentStats.filterNot { it.date == today } + updatedTodayStat)
+                .sortedBy { it.date }
+
+            prefs[DAILY_STATS_KEY] = Json.encodeToString(updatedStats)
+        }
+    }
+
+    suspend fun clearDailyStats() {
+        context.goalDataStore.edit { prefs ->
+            prefs[DAILY_STATS_KEY] = "[]"
         }
     }
 
@@ -467,6 +501,12 @@ class GoalDataStore(private val context: Context) {
         context.goalDataStore.edit { prefs ->
             prefs[UNLOCKED_REWARDS_KEY] = ""
         }
+    }
+
+    private fun decodeDailyStats(json: String?): List<DailyStat> {
+        return runCatching {
+            Json.decodeFromString<List<DailyStat>>(json ?: "[]")
+        }.getOrDefault(emptyList())
     }
 }
 

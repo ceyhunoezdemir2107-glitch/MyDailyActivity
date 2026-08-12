@@ -46,11 +46,17 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.example.mydailyactivity.data.AlbumDataStore
+import com.example.mydailyactivity.data.DailyStat
 import com.example.mydailyactivity.data.GoalDataStore
 import com.example.mydailyactivity.management.GoalNotificationScheduler
 import com.example.mydailyactivity.management.ReminderWidgetController
 import com.example.mydailyactivity.management.ResetScheduler
 import kotlinx.coroutines.launch
+import java.time.DayOfWeek
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.temporal.TemporalAdjusters
+import java.util.Locale
 
 @Composable
 fun SettingsScreen(goalDataStore: GoalDataStore, albumDataStore: AlbumDataStore) {
@@ -65,6 +71,7 @@ fun SettingsScreen(goalDataStore: GoalDataStore, albumDataStore: AlbumDataStore)
     val goalNotificationEnabled by goalDataStore.goalNotificationEnabledFlow.collectAsState(initial = false)
     val goalNotificationTime by goalDataStore.goalNotificationTimeFlow.collectAsState(initial = "20:00")
     val goalNotificationMessage by goalDataStore.goalNotificationMessageFlow.collectAsState(initial = "MyDailyActivity")
+    val dailyStats by goalDataStore.dailyStatsFlow.collectAsState(initial = emptyList())
     val unlockedRewards by goalDataStore.unlockedRewardsFlow.collectAsState(initial = emptyList())
     val userRewards by goalDataStore.userRewardsFlow.collectAsState(initial = emptyList())
     val selectedWidgetRewardId by goalDataStore.selectedWidgetRewardIdFlow.collectAsState(initial = null)
@@ -134,6 +141,7 @@ fun SettingsScreen(goalDataStore: GoalDataStore, albumDataStore: AlbumDataStore)
             .firstOrNull { (_, rewardId) -> rewardId == defaultWidgetRewardId }
             ?.first
         ?: "Kein Bild"
+    val weeklyStats = remember(dailyStats) { calculateWeeklyStats(dailyStats) }
 
     LaunchedEffect(canUseReminders, remindersEnabled, selectedWidgetRewardId, defaultWidgetRewardId) {
         if (!canUseReminders && remindersEnabled) {
@@ -218,6 +226,27 @@ fun SettingsScreen(goalDataStore: GoalDataStore, albumDataStore: AlbumDataStore)
             ) {
                 Text("Berechtigung öffnen")
             }
+        }
+
+        SettingsCard(title = "Statistiken") {
+            Text(
+                text = weeklyStats.weekRangeLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            StatisticRow(
+                label = "Erledigte Tagesziele",
+                value = weeklyStats.completedGoals.toString()
+            )
+            StatisticRow(
+                label = "Gesammelte Punkte",
+                value = weeklyStats.points.toString()
+            )
+            StatisticRow(
+                label = "Ø Punkte pro aktivem Tag",
+                value = weeklyStats.averagePointsPerActiveDay.toString()
+            )
         }
 
         SettingsCard(title = "Tägliche Benachrichtigung") {
@@ -533,6 +562,7 @@ fun SettingsScreen(goalDataStore: GoalDataStore, albumDataStore: AlbumDataStore)
                             goalDataStore.clearWeeklyGoals()
                             goalDataStore.clearUserRewards()
                             goalDataStore.clearUnlockedRewards()
+                            goalDataStore.clearDailyStats()
                             goalDataStore.updateRemindersEnabled(false)
                             goalDataStore.updateSelectedWidgetRewardId(null)
                             goalDataStore.setPoints(0)
@@ -687,6 +717,54 @@ private fun parseTime(time: String): Pair<Int, Int> {
         val parts = time.split(":")
         parts[0].toInt() to parts[1].toInt()
     }.getOrDefault(4 to 0)
+}
+
+@Composable
+private fun StatisticRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary
+        )
+    }
+}
+
+private data class WeeklyStatsSummary(
+    val weekRangeLabel: String,
+    val completedGoals: Int,
+    val points: Int,
+    val averagePointsPerActiveDay: Int
+)
+
+private fun calculateWeeklyStats(stats: List<DailyStat>): WeeklyStatsSummary {
+    val today = LocalDate.now()
+    val start = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+    val end = today.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY))
+    val weekStats = stats.filter { stat ->
+        val date = runCatching { LocalDate.parse(stat.date) }.getOrNull()
+        date != null && !date.isBefore(start) && !date.isAfter(end)
+    }
+    val completedGoals = weekStats.sumOf { it.completedGoals }
+    val points = weekStats.sumOf { it.points }
+    val activeDays = weekStats.count { it.completedGoals > 0 || it.points > 0 }
+    val averagePoints = if (activeDays == 0) 0 else points / activeDays
+    val formatter = DateTimeFormatter.ofPattern("dd. MMM", Locale.GERMAN)
+
+    return WeeklyStatsSummary(
+        weekRangeLabel = "${start.format(formatter)} bis ${end.format(formatter)}",
+        completedGoals = completedGoals,
+        points = points,
+        averagePointsPerActiveDay = averagePoints
+    )
 }
 
 

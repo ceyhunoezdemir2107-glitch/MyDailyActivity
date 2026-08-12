@@ -240,6 +240,10 @@ fun SettingsScreen(goalDataStore: GoalDataStore, albumDataStore: AlbumDataStore)
                 value = weeklyStats.completedGoals.toString()
             )
             StatisticRow(
+                label = "Erledigte Wochenziele",
+                value = weeklyStats.completedWeeklyGoals.toString()
+            )
+            StatisticRow(
                 label = "Gesammelte Punkte",
                 value = weeklyStats.points.toString()
             )
@@ -741,6 +745,7 @@ private fun StatisticRow(label: String, value: String) {
 private data class WeeklyStatsSummary(
     val weekRangeLabel: String,
     val completedGoals: Int,
+    val completedWeeklyGoals: Int,
     val points: Int,
     val averagePointsPerActiveDay: Int
 )
@@ -754,14 +759,18 @@ private fun calculateWeeklyStats(stats: List<DailyStat>): WeeklyStatsSummary {
         date != null && !date.isBefore(start) && !date.isAfter(end)
     }
     val completedGoals = weekStats.sumOf { it.completedGoals }
+    val completedWeeklyGoals = weekStats.sumOf { it.completedWeeklyGoals }
     val points = weekStats.sumOf { it.points }
-    val activeDays = weekStats.count { it.completedGoals > 0 || it.points > 0 }
+    val activeDays = weekStats.count {
+        it.completedGoals > 0 || it.completedWeeklyGoals > 0 || it.points > 0
+    }
     val averagePoints = if (activeDays == 0) 0 else points / activeDays
     val formatter = DateTimeFormatter.ofPattern("dd. MMM", Locale.GERMAN)
 
     return WeeklyStatsSummary(
         weekRangeLabel = "${start.format(formatter)} bis ${end.format(formatter)}",
         completedGoals = completedGoals,
+        completedWeeklyGoals = completedWeeklyGoals,
         points = points,
         averagePointsPerActiveDay = averagePoints
     )

@@ -225,6 +225,24 @@ class GoalDataStore(private val context: Context) {
         }
     }
 
+    suspend fun recordWeeklyProgress(completedWeeklyGoalDelta: Int) {
+        val today = LocalDate.now().toString()
+
+        context.goalDataStore.edit { prefs ->
+            val currentStats = decodeDailyStats(prefs[DAILY_STATS_KEY])
+            val todayStat = currentStats.firstOrNull { it.date == today }
+                ?: DailyStat(date = today, completedGoals = 0, points = 0)
+            val updatedTodayStat = todayStat.copy(
+                completedWeeklyGoals = (todayStat.completedWeeklyGoals + completedWeeklyGoalDelta)
+                    .coerceAtLeast(0)
+            )
+            val updatedStats = (currentStats.filterNot { it.date == today } + updatedTodayStat)
+                .sortedBy { it.date }
+
+            prefs[DAILY_STATS_KEY] = Json.encodeToString(updatedStats)
+        }
+    }
+
     suspend fun clearDailyStats() {
         context.goalDataStore.edit { prefs ->
             prefs[DAILY_STATS_KEY] = "[]"

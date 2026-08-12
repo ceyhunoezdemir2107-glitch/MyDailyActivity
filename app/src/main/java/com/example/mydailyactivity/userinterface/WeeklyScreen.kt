@@ -195,8 +195,13 @@ fun WeeklyScreen(goalDataStore: GoalDataStore) {
                         val pointsForGoal = weeklyGoalPoints[goal] ?: 50
                         scope.launch {
                             goalDataStore.setWeeklyGoalCompleted(goal, checked)
-                            if (checked) goalDataStore.addPoints(pointsForGoal)
-                            else goalDataStore.removePoints(pointsForGoal)
+                            if (checked) {
+                                goalDataStore.addPoints(pointsForGoal)
+                                goalDataStore.recordWeeklyProgress(completedWeeklyGoalDelta = 1)
+                            } else {
+                                goalDataStore.removePoints(pointsForGoal)
+                                goalDataStore.recordWeeklyProgress(completedWeeklyGoalDelta = -1)
+                            }
                         }
                     },
                     onDelete = {

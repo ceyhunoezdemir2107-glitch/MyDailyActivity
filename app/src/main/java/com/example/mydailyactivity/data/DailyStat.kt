@@ -6,5 +6,6 @@ import kotlinx.serialization.Serializable
 data class DailyStat(
     val date: String,
     val completedGoals: Int,
+    val completedWeeklyGoals: Int = 0,
     val points: Int
 )

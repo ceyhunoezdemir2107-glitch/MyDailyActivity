@@ -219,12 +219,12 @@ private fun AlbumImageViewer(
                         onDragEnd = {
                             when {
                                 dragDistance > 80f -> {
-                                    onIndexChange((selectedIndex + 1) % rewards.size)
-                                }
-                                dragDistance < -80f -> {
                                     onIndexChange(
                                         if (selectedIndex == 0) rewards.lastIndex else selectedIndex - 1
                                     )
+                                }
+                                dragDistance < -80f -> {
+                                    onIndexChange((selectedIndex + 1) % rewards.size)
                                 }
                             }
                         }
